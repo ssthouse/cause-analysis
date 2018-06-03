@@ -22,6 +22,15 @@ class Level1(object):
             'owner-pop': False,
             'channel_1': ''
         }
+        self.level2_feature = {
+            'category_1': [],
+            'province': [],
+            'department_1': [],
+            'owner-pop': [],
+            'category_2': [],
+            'channel_1': [],
+            'channel_2': [],
+            'city': []}
         self.children = children
 
     def add_features(self, feature_name, feature_value):
@@ -41,38 +50,72 @@ class Level1(object):
                 return True
             else:
                 return False
+        return True
+
+    def isSameLevel1(self, level1_bean):
+        for key, value in self.features.items():
+            # 只比较level有的属性
+            if not value:
+                continue
+            if level1_bean.features[key] == value:
+                return True
+            else:
+                return False
 
     def add_child(self, level2_bean):
         if self.verify_level2(level2_bean):
             self.children.append(level2_bean)
 
     def fusion(self):
-        # for i in range(len(self.children)):
-        #     if self.verify_level2(self.children[i]):
-        #         self.features['bu_id'] = self.children[i].features['bu_id']
-        return
+        for level2_bean in self.children:
+            for key, value in level2_bean.features.items():
+                if level2_bean.features[key] and level2_bean.features[key] not in self.level2_feature[key]:
+                    self.level2_feature[key].append(level2_bean.features[key])
 
     def print_result(self):
         print (self.features)
+        print (self.level2_feature)
 
 
 class Level2(object):
     def __init__(self):
         self.features = {
             'category_1': '',
-            'province': [],
+            'province': '',
             'department_1': '',
-            'owner-pop': [],
-            'category_2': [],
+            'owner-pop': '',
+            'category_2': '',
             'channel_1': '',
             'channel_2': '',
-            'city': []}
+            'city': ''}
 
     def add_features(self, feature_name, feature_value):
         self.features[feature_name] = feature_value
 
+class TimeSlot(object):
 
-# constuct drill_filter_1        
+    def __init__(self):
+        self.level1_list = []
+
+    def add_child(self, new_level1_bean):
+        for level1 in self.level1_list:
+            # 如果有冲突的
+            if level1.isSameLevel1(new_level1_bean):
+                return
+        self.level1_list.append(new_level1_bean)
+
+    def merge_level1(self, new_level1_bean):
+        if len(self.level1_list) == 0:
+            self.level1_list.append(new_level1_bean)
+            return
+
+        for level1 in self.level1_list:
+            # 如果有冲突的
+            if level1.isConfictLevel1(new_level1_bean):
+                self.level1_list.append()
+
+
+# construct drill_filter_1
 drill_filter_1 = Level1()
 drill_filter_1.add_features('category_1', '13765')
 # drill_filter_1.print_alter()
@@ -96,9 +139,64 @@ drill_filter_4.add_features('category_1', '13765')
 drill_filter_4.add_features('department_1', '1726')
 # drill_filter_4.print_alter()
 
-# classify the alters which have the same features
-level_2_filters = [drill_filter_2, drill_filter_3, drill_filter_4]
 
+# another test case
+# level one
+drill_filter_5 = Level1()
+drill_filter_5.add_features('category_1', '1319')
+
+drill_filter_6 = Level1()
+drill_filter_6.add_features('department_1', '1727')
+
+drill_filter_7 = Level1()
+drill_filter_7.add_features('owner-pop', 'OWNER')
+
+drill_filter_8 = Level1()
+drill_filter_8.add_features('province', '5')
+
+# level two
+drill_filter_9 = Level2()
+drill_filter_9.add_features('category_2', '1523')
+drill_filter_9.add_features('category_1', '1319')
+
+drill_filter_10 = Level2()
+drill_filter_10.add_features('department_1', '1727')
+drill_filter_10.add_features('category_1', '1319')
+
+drill_filter_11 = Level2()
+drill_filter_11.add_features('owner-pop', 'OWNER')
+drill_filter_11.add_features('category_1', '1319')
+
+drill_filter_12 = Level2()
+drill_filter_12.add_features('department_1', '1727')
+drill_filter_12.add_features('owner-pop', 'OWNER')
+
+drill_filter_13 = Level2()
+drill_filter_13.add_features('province', '5')
+drill_filter_13.add_features('category_1', '1319')
+
+drill_filter_14 = Level2()
+drill_filter_14.add_features('province', '5')
+drill_filter_14.add_features('department_1', '1727')
+
+drill_filter_15 = Level2()
+drill_filter_15.add_features('province', '5')
+drill_filter_15.add_features('owner-pop', 'OWNER')
+
+# classify the alters which have the same features
+# level_2_filters = [drill_filter_2, drill_filter_3, drill_filter_4]
+#
+# for filters in level_2_filters:
+#     drill_filter_1.add_child(filters)
+# drill_filter_1.fusion()
+# drill_filter_1.print_result()
+
+#
+
+level_2_filters = [drill_filter_9, drill_filter_10, drill_filter_11,
+                   drill_filter_12, drill_filter_13, drill_filter_14, drill_filter_15]
 for filters in level_2_filters:
-    drill_filter_1.add_child(filters)
-print(drill_filter_1.children)
+    drill_filter_8.add_child(filters)
+drill_filter_7.fusion()
+drill_filter_7.print_result()
+
