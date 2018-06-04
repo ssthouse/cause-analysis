@@ -62,9 +62,21 @@ class Level1(object):
             else:
                 return False
 
+    def isConfictLevel1(self, level1_bean):
+        # 判断两个level1 的feature2 可不可以融合
+        for key, value in self.level2_feature.items():
+            if bool(value) is False or bool(level1_bean.level2_feature[key]) is False:
+                continue
+            # 当两个level的feature的value都有值时 , 判断是不是包含关系
+            if set(value) >= set(level1_bean.level2_feature[key]) or set(value) <= set(level1_bean.level2_feature[key]):
+                return False
+            else:
+                return True
+
     def add_child(self, level2_bean):
         if self.verify_level2(level2_bean):
             self.children.append(level2_bean)
+        return
 
     def fusion(self):
         for level2_bean in self.children:
@@ -92,27 +104,49 @@ class Level2(object):
     def add_features(self, feature_name, feature_value):
         self.features[feature_name] = feature_value
 
-class TimeSlot(object):
 
+class TimeSlot(object):
     def __init__(self):
         self.level1_list = []
 
     def add_child(self, new_level1_bean):
-        for level1 in self.level1_list:
-            # 如果有冲突的
-            if level1.isSameLevel1(new_level1_bean):
-                return
-        self.level1_list.append(new_level1_bean)
-
-    def merge_level1(self, new_level1_bean):
         if len(self.level1_list) == 0:
             self.level1_list.append(new_level1_bean)
             return
 
+        # 判断同样level1是否已经存在
         for level1 in self.level1_list:
-            # 如果有冲突的
-            if level1.isConfictLevel1(new_level1_bean):
-                self.level1_list.append()
+            # 如果是一样的
+            if level1.isSameLevel1(new_level1_bean):
+                return
+
+        isMerged = False
+        for level1_bean in self.level1_list:
+            if level1_bean.isConfictLevel1(new_level1_bean):
+                continue
+            else:
+                # merge
+                self.merge_level1(level1_bean, new_level1_bean)
+
+        # 如果和每一个之前的level1_bean都没有merge(也就是都冲突), 放到list最后
+        if isMerged:
+            return
+        else:
+            self.level1_list.append(new_level1_bean)
+
+    def print_result(self):
+        print('timeSlot result begin: ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~')
+        for level1_bean in self.level1_list:
+            print(level1_bean.features)
+            print(level1_bean.level2_feature)
+            print('------')
+        print('timeSlot result end: ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~')
+
+    @staticmethod
+    def merge_level1(old_level1_bean, new_level1_bean):
+        for key, value in old_level1_bean.level2_feature.items():
+            old_level1_bean.level2_feature[key] = [x for x in
+                                                   iter(set(value) | set(new_level1_bean.level2_feature[key]))]
 
 
 # construct drill_filter_1
@@ -192,11 +226,16 @@ drill_filter_15.add_features('owner-pop', 'OWNER')
 # drill_filter_1.print_result()
 
 #
-
+level_1_filters = [drill_filter_5, drill_filter_6, drill_filter_7, drill_filter_8]
 level_2_filters = [drill_filter_9, drill_filter_10, drill_filter_11,
                    drill_filter_12, drill_filter_13, drill_filter_14, drill_filter_15]
-for filters in level_2_filters:
-    drill_filter_8.add_child(filters)
-drill_filter_7.fusion()
-drill_filter_7.print_result()
+for level_1_filter in level_1_filters:
+    for filters in level_2_filters:
+        level_1_filter.add_child(filters)
+    level_1_filter.fusion()
+    level_1_filter.print_result()
 
+timeSlot = TimeSlot()
+for level1 in level_1_filters:
+    timeSlot.add_child(level1)
+timeSlot.print_result()
